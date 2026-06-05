@@ -31847,18 +31847,18 @@ const AGENT_CONFIGS = {
   compliance: {
     label: 'Compliance',
     buildSystemPrompt: (base) =>
-      `${base}\n\nYou are a compliance auditor. Your ONLY job is to find violations of the project rules in the "Project Instructions" section. For every finding you MUST quote the exact rule being violated. If you cannot quote an exact rule, do not report the issue.`,
+      `${base}\n\nYou are a compliance auditor. Your ONLY job is to find violations of the project rules defined in the "Project Instructions" section. For each finding, reference the relevant rule and explain clearly how the code violates it.`,
     buildInstructions: (minConfidence) => `## Review Instructions — Compliance
 Your ONLY job is to find violations of the rules defined in the "Project Instructions" section.
 
 **Report ONLY:**
-- Violations where you can quote the EXACT sentence or rule from the project instructions
-- Include the quoted rule at the start of \`body\` using a blockquote
+- Clear violations of rules listed in the project instructions
+- In \`body\`: name the rule being violated and explain specifically how the changed code breaks it
 
 **DO NOT report:**
 - Bugs, logic errors, or runtime issues (another agent handles those)
 - Security vulnerabilities (another agent handles those)
-- Issues where no explicit rule exists in the project instructions
+- Issues where no relevant rule exists in the project instructions
 - Style or formatting preferences not explicitly listed in the instructions
 
 **Confidence requirement:** Only include findings with confidence >= ${minConfidence}%.`,
