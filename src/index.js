@@ -397,7 +397,11 @@ async function runParallelAgents(apiKey, model, baseSystemPrompt, prContext, cha
     agentTypes.map(async agentType => {
       const config = AGENT_CONFIGS[agentType];
       const systemPrompt = config.buildSystemPrompt(baseSystemPrompt);
-      const prompt = buildAgentPrompt(agentType, prContext, changedFiles, instructionFiles, fullContents, maxDiffChars, minConfidence);
+      // Compliance agent works better with diff-only: the + markers highlight
+      // exactly what was added, making rule violations more visible. Full file
+      // content dilutes that signal by adding unchanged code as noise.
+      const agentFullContents = agentType === 'compliance' ? {} : fullContents;
+      const prompt = buildAgentPrompt(agentType, prContext, changedFiles, instructionFiles, agentFullContents, maxDiffChars, minConfidence);
       try {
         const rawResponse = await callZaiApi(apiKey, model, systemPrompt, prompt);
         const parsed = parseReviewResponse(rawResponse, minConfidence);
