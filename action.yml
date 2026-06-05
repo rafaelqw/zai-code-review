@@ -24,6 +24,10 @@ inputs:
     description: "Maximum total characters for the diff sent to the API (0 = unlimited)"
     required: false
     default: "0"
+  MAX_FILE_CONTENT_CHARS:
+    description: "Maximum characters per file for full file content sent alongside the diff (0 = disabled, default 20000)"
+    required: false
+    default: "20000"
   POST_INLINE_COMMENTS:
     description: "Post findings as inline PR review comments instead of a single summary comment"
     required: false
