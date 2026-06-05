@@ -1,0 +1,52 @@
+name: "Z.ai PR Description Generator"
+description: "Automatically generates or improves pull request descriptions using Z.ai"
+inputs:
+  ZAI_API_KEY:
+    description: "Z.ai API key"
+    required: true
+  ZAI_MODEL:
+    description: "Z.ai model to use"
+    required: false
+    default: "glm-4.7"
+  ZAI_SYSTEM_PROMPT:
+    description: "Custom system prompt for the AI writer"
+    required: false
+    default: ""
+  OVERWRITE_EXISTING:
+    description: "Overwrite the description even if one already exists"
+    required: false
+    default: "false"
+  MIN_DESCRIPTION_LENGTH:
+    description: "Minimum character length to consider a description already adequate (only applies when OVERWRITE_EXISTING=false)"
+    required: false
+    default: "50"
+  EXCLUDE_PATTERNS:
+    description: "Comma-separated file patterns to exclude from the diff context"
+    required: false
+    default: "*.lock,package-lock.json,yarn.lock,pnpm-lock.yaml"
+  MAX_DIFF_CHARS:
+    description: "Maximum total characters for the diff sent to the API (0 = unlimited)"
+    required: false
+    default: "0"
+  INCLUDE_PROJECT_INSTRUCTIONS:
+    description: "Include CLAUDE.md / AGENTS.md as project context for the description"
+    required: false
+    default: "true"
+  PROJECT_INSTRUCTION_FILES:
+    description: "Comma-separated list of instruction file names to include as context"
+    required: false
+    default: "CLAUDE.md,AGENTS.md,.github/copilot-instructions.md"
+  TRUSTED_INSTRUCTIONS_REF:
+    description: "Which branch to read instruction files from: 'base' or 'head'"
+    required: false
+    default: "base"
+  GITHUB_TOKEN:
+    description: "GitHub token for API access"
+    required: false
+    default: ${{ github.token }}
+runs:
+  using: "node20"
+  main: "../dist-pr-description/index.js"
+branding:
+  icon: "edit"
+  color: "blue"
