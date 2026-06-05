@@ -112,7 +112,8 @@ async function getFileContent(octokit, owner, repo, path, ref) {
     const { data } = await octokit.rest.repos.getContent({ owner, repo, path, ref });
     if (data.type !== 'file' || !data.content) return null;
     return Buffer.from(data.content, 'base64').toString('utf-8');
-  } catch {
+  } catch (err) {
+    if (err.status === 403) core.warning(`No permission to read file contents. Add "contents: read" to your workflow permissions.`);
     return null;
   }
 }

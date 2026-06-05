@@ -1,0 +1,28 @@
+name: AI Code Review with Z.ai
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  review:
+    name: Code Review
+    runs-on: self-hosted
+    steps:
+      - name: Code Review
+        uses: rafaelqw/zai-code-review@main
+        with:
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+          ZAI_MODEL: ${{ vars.ZAI_MODEL }}
+          ZAI_REVIEWER_NAME: ${{ vars.ZAI_REVIEWER_NAME }}
+          ZAI_SYSTEM_PROMPT: ${{ vars.ZAI_SYSTEM_PROMPT }}
+
+          POST_INLINE_COMMENTS: "true"
+          INCLUDE_PROJECT_INSTRUCTIONS: "true"
+          PROJECT_INSTRUCTION_FILES: "CLAUDE.md,AGENTS.md,.github/copilot-instructions.md"
+          TRUSTED_INSTRUCTIONS_REF: "base"
+          MIN_CONFIDENCE: "80"
