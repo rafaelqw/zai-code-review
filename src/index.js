@@ -275,26 +275,84 @@ function parseReviewResponse(responseText, minConfidence) {
   return { summary: parsed.summary, findings: validFindings };
 }
 
+function titleKeywords(title) {
+  const stopwords = new Set(['across', 'files', 'file', 'service', 'services', 'method', 'methods',
+    'using', 'with', 'from', 'into', 'will', 'does', 'have', 'been', 'that', 'this',
+    'identical', 'same', 'multiple', 'every', 'each', 'class', 'classes', 'layer', 'pattern']);
+  return new Set(title.toLowerCase().split(/\W+/).filter(w => w.length > 3 && !stopwords.has(w)));
+}
+
+function titlesSimilar(a, b) {
+  const ka = titleKeywords(a);
+  const kb = titleKeywords(b);
+  if (ka.size === 0 || kb.size === 0) return false;
+  const intersection = [...ka].filter(w => kb.has(w)).length;
+  const union = new Set([...ka, ...kb]).size;
+  return intersection / union >= 0.5;
+}
+
+function pickRepresentative(group) {
+  const severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+  return [...group].sort((a, b) => {
+    const sv = (severityOrder[a.severity] ?? 2) - (severityOrder[b.severity] ?? 2);
+    return sv !== 0 ? sv : b.confidence - a.confidence;
+  })[0];
+}
+
 function groupFindings(findings) {
-  const groups = new Map();
+  // Phase 1: group by exact normalized title (same issue, multiple locations)
+  const byTitle = new Map();
   for (const f of findings) {
     const key = f.title.toLowerCase().trim();
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(f);
+    if (!byTitle.has(key)) byTitle.set(key, []);
+    byTitle.get(key).push(f);
   }
 
-  const result = [];
-  for (const group of groups.values()) {
+  const phase1 = [];
+  for (const group of byTitle.values()) {
     if (group.length === 1) {
-      result.push(group[0]);
+      phase1.push(group[0]);
       continue;
     }
     group.sort((a, b) => b.confidence - a.confidence);
-    const representative = { ...group[0] };
-    const otherLocations = group.slice(1).map(f => `\`${f.path}:${f.line}\``).join(', ');
-    representative.body += `\n\n**Also affects:** ${otherLocations}`;
-    result.push(representative);
+    const rep = { ...group[0] };
+    const others = group.slice(1).map(f => `\`${f.path}:${f.line}\``).join(', ');
+    rep.body += `\n\n**Also affects:** ${others}`;
+    phase1.push(rep);
   }
+
+  // Phase 2: group by same path:line OR similar title (cross-agent duplicates)
+  const used = new Set();
+  const result = [];
+
+  for (let i = 0; i < phase1.length; i++) {
+    if (used.has(i)) continue;
+    const a = phase1[i];
+    const group = [i];
+
+    for (let j = i + 1; j < phase1.length; j++) {
+      if (used.has(j)) continue;
+      const b = phase1[j];
+      const sameLocation = a.path === b.path && Math.abs(a.line - b.line) <= 3;
+      const similar = titlesSimilar(a.title, b.title);
+      if (sameLocation || similar) group.push(j);
+    }
+
+    if (group.length === 1) {
+      result.push(a);
+    } else {
+      const members = group.map(idx => phase1[idx]);
+      const rep = { ...pickRepresentative(members) };
+      const extras = members
+        .filter(f => f !== rep && f.body.split('\n')[0] !== rep.body.split('\n')[0])
+        .map(f => f.body.split('\n')[0]);
+      if (extras.length > 0) rep.body += `\n\n**Also noted:** ${extras.join('; ')}`;
+      group.forEach(idx => used.add(idx));
+      result.push(rep);
+    }
+    group.forEach(idx => used.add(idx));
+  }
+
   return result;
 }
 
