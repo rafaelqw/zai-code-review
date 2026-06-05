@@ -31963,6 +31963,8 @@ You are performing a high-signal code review. Your goal is to find real issues, 
 - Issues that a linter or type checker would catch automatically
 - Speculative or uncertain findings
 
+**Grouping rule:** If the same root cause appears in multiple files or locations, report it as ONE finding. Use the most representative file/line for \`path\`/\`line\`. List all other affected locations at the end of \`body\` as "Also affects: path1:line1, path2:line2, ...". Do NOT create separate findings for each occurrence of the same issue.
+
 **Confidence requirement:** Only include findings with confidence >= ${minConfidence}%.
 
 Respond with ONLY valid JSON (no markdown fences, no explanation) in this exact schema:
@@ -32031,7 +32033,30 @@ function parseReviewResponse(responseText, minConfidence) {
     });
   }
 
-  return { summary: parsed.summary, findings: validFindings };
+  return { summary: parsed.summary, findings: groupFindings(validFindings) };
+}
+
+function groupFindings(findings) {
+  const groups = new Map();
+  for (const f of findings) {
+    const key = f.title.toLowerCase().trim();
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(f);
+  }
+
+  const result = [];
+  for (const group of groups.values()) {
+    if (group.length === 1) {
+      result.push(group[0]);
+      continue;
+    }
+    group.sort((a, b) => b.confidence - a.confidence);
+    const representative = { ...group[0] };
+    const otherLocations = group.slice(1).map(f => `\`${f.path}:${f.line}\``).join(', ');
+    representative.body += `\n\n**Also affects:** ${otherLocations}`;
+    result.push(representative);
+  }
+  return result;
 }
 
 function severityEmoji(severity) {
