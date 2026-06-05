@@ -153,8 +153,10 @@ Respond with ONLY valid JSON (no markdown fences, no explanation) in this exact 
 function parseReviewResponse(responseText, minConfidence) {
   let jsonText = responseText.trim();
 
-  const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (codeBlockMatch) jsonText = codeBlockMatch[1].trim();
+  if (jsonText.startsWith('```')) {
+    const codeBlockMatch = jsonText.match(/^```(?:\w+)?\s*\n?([\s\S]*?)\n?```\s*$/);
+    if (codeBlockMatch) jsonText = codeBlockMatch[1].trim();
+  }
 
   const firstBrace = jsonText.indexOf('{');
   const lastBrace = jsonText.lastIndexOf('}');
